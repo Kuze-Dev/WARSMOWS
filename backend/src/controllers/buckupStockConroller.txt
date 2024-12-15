@@ -1,0 +1,155 @@
+import { stockInModel, getStockOutQuantity, getStockInQuantity, stockOutModel, insertStockInHistory, insertStockOutHistory, getStockInPrice, getItemIdFromItemTable } from '../models/stockModel.mjs';
+
+
+
+
+function stockInItem(req, res) {
+    const { id } = req.params;
+    const date_stockIn = new Date();
+    const { quantity_in, price, comments_in, stockIn_flow } = req.body;
+
+    getItemIdFromItemTable(id, (err, item) => {
+        if (err) {
+            console.error(err);
+            return res.json({ success: false, message: 'Failed to Retrieve Item Information!' });
+        }
+
+        if (!item) {
+            return res.json({ success: false, message: 'Item not found!' });
+        }
+
+        const { item_id } = item;  // Retrieve the existing item_id
+
+        // Step 1: Get the current stock quantity to validate against quantity_out
+        getStockOutQuantity(id, (err, currentQuantity) => {
+            if (err) {
+                console.error(err);
+                return res.json({ failed: false, msg: 'Failed to Retrieve Stock Information!' });
+            }
+
+            if (currentQuantity === null) {
+                return res.json({ failed: false, msg: 'Stock not found!' });
+            }
+
+            // Step 2: Validate if quantity_in is greater than the current quantity_out
+            const { quantity_out } = currentQuantity;  // Assuming the current stock quantity includes `quantity_out`
+            if (quantity_in <= quantity_out) {
+                return res.json({
+                    failed: false,
+                    msg: 'Quantity In must be greater than Quantity Out!'
+                });
+            }
+
+            // Step 3: Proceed with stock in
+            const data = [quantity_in, price, date_stockIn, comments_in, stockIn_flow, id];
+            stockInModel(data, (err, result) => {
+                if (err) {
+                    console.error(err);
+                    return res.json({ success: false, message: 'Failed to Add Stock In!' });
+                }
+
+                // Step 4: Insert stock-in history
+                const stockInData = [id, item_id, quantity_in, price,comments_in,date_stockIn, stockIn_flow];
+                insertStockInHistory(stockInData, (err, results) => {
+                    if (err) {
+                        console.error(err);
+                        return res.json({ success: false, message: 'Failed to Insert Stock In History!' });
+                    }
+
+                    res.status(200).json({ success: true, message: 'Stock In Added Successfully!' });
+                });
+            });
+        });
+    });
+}
+
+function stockOutItem(req, res) {
+    const { id } = req.params;
+    const date_stockOut = new Date();
+    const { quantity_out, stock_status, comments_out, stockOut_flow } = req.body;
+
+    // Ensure stock_status is a valid string, like 'Consume', 'Damage', or 'Other'
+    if (!['Consume', 'Damage', 'Other'].includes(stock_status)) {
+        return res.json({ success: false, message: 'Invalid stock status!' });
+    }
+
+    getItemIdFromItemTable(id, (err, item) => {
+        if (err) {
+            console.error(err);
+            return res.json({ success: false, message: 'Failed to Retrieve Item Information!' });
+        }
+
+        if (!item) {
+            return res.json({ success: false, message: 'Item not found!' });
+        }
+
+        const { item_id } = item;  // Retrieve the existing item_id
+
+        // Step 1: Check the current stock quantity
+        getStockInQuantity(id, (err, currentQuantity) => {
+            if (err) {
+                console.error(err);
+                return res.json({ failed: false, msg: 'Failed to Retrieve Stock Information!' });
+            }
+
+            if (currentQuantity === null) {
+                return res.json({ failed: false, msg: 'Stock not found!' });
+            }
+
+            // Step 2: Validate if there is enough quantity to stock out
+            if (quantity_out > currentQuantity) {
+                return res.json({ failed: false, msg: 'Insufficient stock quantity!' });
+            }
+
+            // Step 3: Retrieve stock-in price for this stock item
+            getStockInPrice(id, (err, price) => {  
+                if (err) {
+                    console.error(err);
+                    return res.json({ failed: false, msg: 'Failed to Retrieve Stock-in Price!' });
+                }
+                if (price === null) {
+                    return res.json({ success: false, msg: 'No stock-in price found!' });
+                }
+
+                // Step 4: Proceed with stock out
+                const data = [quantity_out, stock_status, date_stockOut, comments_out, stockOut_flow, id];
+                stockOutModel(data, (err, result) => {
+                    if (err) {
+                        console.error(err);
+                        return res.json({ success: false, message: 'Failed to Stock Out!' });
+                    }
+
+                    // Insert stock out history
+                    const stockOutData = [id, item_id, quantity_out, price,comments_out,stock_status, date_stockOut, stockOut_flow];
+                    insertStockOutHistory(stockOutData, (err, results) => {
+                        if (err) {
+                            console.error(err);
+                            return res.json({ success: false, message: 'Failed to Insert Stock Out History!' });
+                        }
+
+                        res.status(200).json({ success: true, message: 'Stock Out Added Successfully!' });
+                    });
+                });
+            });
+        });
+    });
+}
+
+// function getStock(req,res){
+//     getStockModel((err,rows)=>{
+//     if(err){
+//         console.error(err);
+//         return res.json({failed:'False',message:'Failed to Retrieve Stock'});
+//     }else{
+//         res.json(rows);
+//     }
+//     });
+// }
+
+
+
+
+
+export { stockInItem, stockOutItem };
+
+

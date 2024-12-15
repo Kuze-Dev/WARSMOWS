@@ -1,0 +1,120 @@
+import { connection } from "../config/db.mjs";
+
+function insertTransactionModel(data, callback) {
+  const query = `
+    INSERT INTO transaction (
+      subTotal, 
+      discountPercentage, 
+      totalDue, 
+      cash, 
+      change_amount, 
+      customer_id,    -- Only customer_id, not detailed customer fields
+      selectedService,      
+      user_id, 
+      paymentStatus,
+      notes
+    ) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  
+  const transactionData = [
+    data.subTotal,
+    data.discountPercentage,
+    data.totalDue,
+    data.cash,
+    data.change_amount,
+    data.selectedCustomer && data.selectedCustomer.customer_id ? data.selectedCustomer.customer_id : 1, // Set default ID if missing
+    data.selectedService,
+    data.user_id,
+    data.paymentStatus,
+    data.notes
+  ];
+
+  connection.query(query, transactionData, callback);
+}
+
+
+function insertItemsModel(itemsData, callback) {
+  const query = `
+    INSERT INTO transaction_items (
+      transaction_id,
+      item_id,
+      quantity,
+      free,
+      total
+     
+    )
+    VALUES ?`; // Using ? for multiple value insertion
+
+  const values = itemsData.map(item => [
+    item.transaction_id, // Foreign key linking to the transaction
+    item.item_id,        // Include item_id here
+    item.quantity,
+    item.free,
+    item.total
+    
+  ]);
+
+  connection.query(query, [values], callback);
+}
+
+function getTransactionItemModel(data, callback) {
+  const query = `SELECT * FROM transaction_items`;
+  connection.query(query, data, callback);
+}
+
+function getTransactionModel(data, callback) {
+  const query = 
+  `SELECT 
+    t.transaction_id,
+    IFNULL(t.customer_id, 'N/A') AS customer_id,
+    IFNULL(c.firstname, 'Guest') AS firstname,
+    IFNULL(c.lastname, '') AS lastname,
+    IFNULL(c.alias, 'Use this account for pick-up only') AS alias,
+    IFNULL(c.sitio, 'Bangkal Tumoy') AS sitio,
+    IFNULL(c.barangay, 'Ibabao') AS barangay,
+    IFNULL(c.city, 'Cordova') AS city,
+    IFNULL(c.province, 'Cebu') AS province,
+    t.user_id,
+    t.subTotal,
+    t.discountPercentage,
+    t.totalDue,
+    t.cash,
+    t.change_amount,
+    t.selectedService,
+    t.paymentStatus,
+    t.notes,
+    t.transaction_date,
+    GROUP_CONCAT(
+      CONCAT(
+        '{"item_id":"', ti.item_id, '",',
+        '"quantity":', ti.quantity, ',',
+        '"free":', IFNULL(ti.free, 0), ',',
+        '"total":', ti.total, '}'
+      ) SEPARATOR ','
+    ) AS items
+  FROM transaction t
+  LEFT JOIN customer c ON t.customer_id = c.customer_id
+  LEFT JOIN transaction_items ti ON t.transaction_id = ti.transaction_id
+  GROUP BY t.transaction_id`
+;
+
+connection.query(query, data, callback);
+
+
+
+}
+
+
+
+function deleteTransactionItemsModel(transactionId, callback) {
+  const query = `DELETE FROM transaction_items WHERE transaction_id = ?`;
+  connection.query(query, [transactionId], callback);
+}
+
+function deleteTransactionModel(transactionId, callback) {
+  const query = `DELETE FROM transaction WHERE transaction_id = ?`;
+  connection.query(query, [transactionId], callback);
+}
+
+
+export {insertTransactionModel,insertItemsModel,getTransactionItemModel,getTransactionModel, deleteTransactionModel, deleteTransactionItemsModel};
