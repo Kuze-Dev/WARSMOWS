@@ -45,7 +45,7 @@ function stockInItem(req, res) {
                 }
 
                 // Step 4: Insert stock-in history
-                const stockInData = [id, item_id, updatedQuantityIn, price, comments_in, date_stockIn, stockIn_flow];
+                const stockInData = [id, item_id, quantity_in, price, comments_in, date_stockIn, stockIn_flow];
                 insertStockInHistory(stockInData, (err, results) => {
                     if (err) {
                         console.error(err);
@@ -68,7 +68,7 @@ function stockInItem(req, res) {
                         console.log("Id for Expense",expenseId);
 
                         // Step 6: Insert into expense history
-                        const expenseHistoryData = [expenseId, item_id, id];
+                        const expenseHistoryData = [expenseId, item_id, id,quantity_in,price, comments_in, date_stockIn, stockIn_flow];
                         insertExpenseHistory(expenseHistoryData, (err, historyResult) => {
                             if (err) {
                                 console.error(err);
@@ -171,7 +171,7 @@ function stockOutItem(req, res) {
                             const expenseId = expenseResult.insertId;
                             console.log('Expense Id Out',expenseId);
                             // Step 6: Insert into expenses history
-                            const expenseStockOutHistoryData = [expenseId, item_id, id];
+                            const expenseStockOutHistoryData = [expenseId, item_id, id,quantity_out, price, comments_out, stock_status, date_stockOut, stockOut_flow];
                             insertStockOutExpenseHistory(expenseStockOutHistoryData, (err, historyResult) => {
                                 if (err) {
                                     console.error(err);

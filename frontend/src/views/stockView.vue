@@ -340,12 +340,12 @@ const goToNextPageHistory = () => {
 };
 
 
-// Computed property for filtered stockHistories
-const filteredStockHistories = computed(() =>
-  stockHistories.value.filter(
-    (stockHistory) => stockHistory.stock_id === selectedStockId.value
-  )
-);
+// // Computed property for filtered stockHistories
+// const filteredStockHistories = computed(() =>
+//   stockHistories.value.filter(
+//     (stockHistory) => stockHistory.stock_id === selectedStockId.value
+//   )
+// );
 
 
 
@@ -802,7 +802,7 @@ onMounted(() => {
                                         <option value="" disabled>Select Status</option>
                                         <option value="Consume">Consume</option>
                                         <option value="Damage">Damage</option>
-                                        <option value="Consume">Other</option>
+                                        <option value="Other">Other</option>
                                     </select>
                                 </div>
 
@@ -1018,9 +1018,11 @@ onMounted(() => {
                                             {{ stockHistory.comments_in ? stockHistory.comments_in : '' }}
                                             {{ stockHistory.comments_out ? stockHistory.comments_out : '' }}
                                         </td>
-                                        <td class="px-4 w-2 py-4 text-sm text-gray-800">
+                                        <td class="px-4  w-2 py-4 text-sm text-gray-800">
+                                            <div class="mx-5">
                                             {{ stockHistory.stockIn_flow }}
                                             {{ stockHistory.stockOut_flow }}
+                                        </div>
                                         </td>
                                         <td class="px-4 w-2 py-4 text-sm text-gray-800">
                                             {{ stockHistory.stock_status }}

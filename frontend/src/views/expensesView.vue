@@ -5,7 +5,7 @@ import { RouterLink, RouterView } from 'vue-router'
 import { useToast } from "vue-toastification";
 import Swal from 'sweetalert2';
 import { formatDate } from '../utils/dateFormatter';
-import { ref, onMounted,onUnmounted,watch} from 'vue'
+import { ref, onMounted,onUnmounted,watch,computed} from 'vue'
 import axios from '../../axios';
 
 const toast = useToast();
@@ -279,7 +279,7 @@ onUnmounted(() => {
 });
 
 const deleteExpense =async(id)=>{
-    alert(id);
+    // alert(id);
     Swal.fire({
         title: 'Are you sure?',
         text: "You won't be able to revert this!",
@@ -310,22 +310,20 @@ const showExpensesHistoryModal =ref(false);
 
 const title = ref('');
 const image_item = ref('');
-const expense_image = ref('');
-const expense_name = ref('');
+// const expense_image = ref('');
+// const expense_name = ref('');
 const openExpensesHistoryModal = (id) => {
-    showExpensesHistoryModal.value = true;
-
     alert(id);
-    const expense = expenses.value.find((expense) => expense.id === id);
-    if (expense) {
-        // Use expense_name as fallback for title
-        title.value = expense.title || expense.expense_name;
+  selectedExpenseId.value = id; // Set the selected ID
+  showExpensesHistoryModal.value = true;
 
-        // Use expense_image as fallback for image_item
-        image_item.value = expense.image_item
-            ? `../src/assets/uploads/${expense.image_item}`
-            : `../src/assets/uploads/${expense.expense_image}`;
-    }
+  const expense = expenses.value.find((expense) => expense.stock_id === id);
+  if (expense) {
+    title.value = expense.title || expense.expense_name;
+    image_item.value = expense.image_item
+      ? `../src/assets/uploads/${expense.image_item}`
+      : `../src/assets/uploads/${expense.expense_image}`;
+  }
 };
 
 const closeExpensesHistoryModal=()=>{
@@ -336,14 +334,82 @@ const closeExpensesHistoryModal=()=>{
 const expensesHistories = ref([]);
 
 const fetchExpensesHistory = async () => {
-  try {
-    const response = await axios.get(`/getAllExpensesData`);
-    expensesHistories.value = response.data.results;
-    console.log("Expenses History",expensesHistories.value);
-  } catch (err) {
-    console.error('Error Fetching Expenses History:', err);
-  }
+    try {
+        const response = await axios.get(`/getAllExpensesData?page=${currentPageHistory.value}&limit=${perPageHistory.value}`);
+        expensesHistories.value = response.data.results; // Assign results directly
+        totalStockHistories.value = response.data.Totalhistories;
+        currentPageHistory.value = response.data.currentPage;
+        perPageHistory.value = response.data.perPage;
+
+        // Check if the selectedExpenseId is still in the current data
+        const exists = expensesHistories.value.some(expense => expense.stock_id === selectedExpenseId.value);
+
+        // If the page is empty or the selectedExpenseId no longer exists, navigate to the previous page
+        if ((!exists || expensesHistories.value.length === 0) && currentPageHistory.value > 1) {
+            currentPageHistory.value--;
+            await fetchExpensesHistory(); // Recursive call to fetch the previous page
+        }
+    } catch (err) {
+        console.error('Error Fetching Expenses History:', err);
+    }
 };
+
+//Pages
+const currentPageHistory = ref(0);
+const perPageHistory = ref(0); 
+const totalStockHistories = ref(0);
+
+
+
+
+const goToPreviousPageHistory = () => {
+    
+    if (currentPageHistory.value > 1) {
+        currentPageHistory.value--;
+        fetchExpensesHistory();
+    }
+};
+
+const goToNextPageHistory = () => {
+    
+    const totalHistoryPages = Math.ceil(totalStockHistories.value / perPageHistory.value);
+    if (currentPageHistory.value< totalHistoryPages) {
+        currentPageHistory.value++;
+        fetchExpensesHistory();
+    }
+};
+
+
+
+
+
+
+const deleteExpenseHistory =async(id)=>{
+    // alert(id);
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+
+            axios.delete(`/deleteExpenseData/${id}`).then((response) => {
+                if (response.data.success) {
+                    Swal.fire('Success!', response.data.msg, 'success');
+                    fetchExpensesHistory();
+                } else {
+                    Swal.fire('Error!', response.data.msg, 'error');
+                }
+
+            })
+        }
+    });
+}
 
 
 // Call getAllExpenses when the component mounts to load the initial data
@@ -514,7 +580,7 @@ onMounted(() => {
             d="M7.932 16.2915C5.90067 16.2915 4.13033 15.6282 2.621 14.3015C1.11167 12.9748 0.238 11.3048 0 9.2915H1.011C1.283 11.0115 2.06667 12.4415 3.362 13.5815C4.65733 14.7215 6.18067 15.2915 7.932 15.2915C9.882 15.2915 11.536 14.6125 12.894 13.2545C14.252 11.8965 14.9313 10.2422 14.932 8.2915C14.9327 6.34084 14.2533 4.6865 12.894 3.3285C11.5347 1.9705 9.88067 1.2915 7.932 1.2915C6.89733 1.2915 5.92467 1.51017 5.014 1.9475C4.10333 2.38484 3.3 2.98684 2.604 3.7535H5.085V4.7535H0.932V0.599504H1.932V2.9875C2.70533 2.13884 3.61133 1.4775 4.65 1.0035C5.68867 0.529504 6.78267 0.292171 7.932 0.291504C9.04067 0.291504 10.08 0.50017 11.05 0.917504C12.02 1.33484 12.8673 1.90584 13.592 2.6305C14.3167 3.35517 14.888 4.20284 15.306 5.1735C15.724 6.14417 15.9327 7.1835 15.932 8.2915C15.9313 9.3995 15.7227 10.4388 15.306 11.4095C14.8893 12.3802 14.318 13.2278 13.592 13.9525C12.866 14.6772 12.0187 15.2482 11.05 15.6655C10.0813 16.0828 9.042 16.2915 7.932 16.2915ZM11.135 12.1455L7.489 8.4995V3.2915H8.489V8.0835L11.843 11.4375L11.135 12.1455Z"
             fill="#555555" />
         </svg>
-        <span @click="openExpensesHistoryModal(expense.id)" class="text-[13px] hover:text-white cursor-pointer text-black">History</span>
+        <span @click="openExpensesHistoryModal(expense.stock_id)" class="text-[13px] hover:text-white cursor-pointer text-black">History</span>
       </div>
 
       <!-- border bottom -->
@@ -847,16 +913,14 @@ onMounted(() => {
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white whitespace-nowrap">
-                                 
-                                    <tr
-      class="border-b border-gray-300"
-      v-if="expensesHistories.length > 0"
-      v-for="(expensesHistory, index) in expensesHistories"
-      :key="expensesHistory.expenses_history_id"
-      >
-
+                                    <tr 
+  class="border-b border-gray-300"
+  v-for="(expensesHistory, index) in expensesHistories"
+  :key="expensesHistory.expenses_history_id"
+  v-show="expensesHistory.stock_id===selectedExpenseId"
+>
       <td class="px-4 w-2 py-4 text-sm text-gray-800">
-        {{ expensesHistory.expenses_history_id }}
+        {{ (currentPageHistory - 1) * perPageHistory + index + 1 }}
       </td>
       <td class="px-4 w-2 py-4 text-sm text-gray-800">
         {{ expensesHistory.quantity_in || '' }} {{ expensesHistory.quantity_out || '' }}
@@ -877,9 +941,11 @@ onMounted(() => {
                                             {{ expensesHistory.comments_in ? expensesHistory.comments_in : '' }}
                                             {{ expensesHistory.comments_out ? expensesHistory.comments_out : '' }}
                                         </td>
-                                        <td class="px-4 w-2 py-4 text-sm text-gray-800">
+                                        <td class="px-4 w-2 py-4 text- text-gray-800">
+                                            <div class="mx-5">
                                             {{ expensesHistory.stockIn_flow }}
                                             {{ expensesHistory.stockOut_flow }}
+                                        </div>
                                         </td>
                                         <td class="px-4 w-2 py-4 text-sm text-gray-800">
                                             {{ expensesHistory.stock_status }}
@@ -891,7 +957,7 @@ onMounted(() => {
                                         </td>
                                         <td class="px-4 w-2 py-4 text-sm text-gray-800">
                                             <div class="mx-4">
-                                                <svg
+                                                <svg @click="deleteExpenseHistory(expensesHistory.expenses_history_id)"
                                                     class="cursor-pointer" width="25" height="23" viewBox="0 0 25 23"
                                                     fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path
@@ -901,11 +967,11 @@ onMounted(() => {
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr v-else>
-        <td colspan="8" class="py-4 text-center text-gray-500 text-xl font-semibold">
-            No stock history found
-        </td>
-    </tr>
+                                    <tr v-if="!expensesHistories.some(expensesHistory => expensesHistory.stock_id === selectedExpenseId)">
+  <td colspan="8" class="py-4 text-center text-gray-500 text-xl font-semibold">
+    No expenses history found
+  </td>
+</tr>
                                 </tbody>
 
                             </table>
@@ -915,7 +981,7 @@ onMounted(() => {
                     <div
                         class=" flex justify-center   relative   ">
                         <!-- Start Of Previous Page -->
-                        <svg class="bg-gray-200 border-l rounded-l-full cursor-pointer" width="40" height="30"
+                        <svg @click="goToPreviousPageHistory" class="bg-gray-200 border-l rounded-l-full cursor-pointer" width="40" height="30"
                             viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
                                 d="M11.707 7.05451C11.8945 7.24203 11.9998 7.49634 11.9998 7.76151C11.9998 8.02667 11.8945 8.28098 11.707 8.4685L7.414 12.7615L11.707 17.0545C11.8892 17.2431 11.99 17.4957 11.9877 17.7579C11.9854 18.0201 11.8802 18.2709 11.6948 18.4563C11.5094 18.6417 11.2586 18.7469 10.9964 18.7492C10.7342 18.7515 10.4816 18.6507 10.293 18.4685L5.293 13.4685C5.10553 13.281 5.00021 13.0267 5.00021 12.7615C5.00021 12.4963 5.10553 12.242 5.293 12.0545L10.293 7.05451C10.4805 6.86703 10.7348 6.76172 11 6.76172C11.2652 6.76172 11.5195 6.86703 11.707 7.05451ZM17.707 7.05451C17.8945 7.24203 17.9998 7.49634 17.9998 7.76151C17.9998 8.02667 17.8945 8.28098 17.707 8.4685L13.414 12.7615L17.707 17.0545C17.8892 17.2431 17.99 17.4957 17.9877 17.7579C17.9854 18.0201 17.8802 18.2709 17.6948 18.4563C17.5094 18.6417 17.2586 18.7469 16.9964 18.7492C16.7342 18.7515 16.4816 18.6507 16.293 18.4685L11.293 13.4685C11.1055 13.281 11.0002 13.0267 11.0002 12.7615C11.0002 12.4963 11.1055 12.242 11.293 12.0545L16.293 7.05451C16.4805 6.86703 16.7348 6.76172 17 6.76172C17.2652 6.76172 17.5195 6.86703 17.707 7.05451Z"
@@ -924,11 +990,11 @@ onMounted(() => {
                         <!-- End of Previous -->
 
                         <!-- Start of Current Page -->
-                        <span class="bg-[#4E95C9] px-3 pt-1 ">1</span>
+                        <span class="bg-[#4E95C9] px-3 pt-1 ">{{currentPageHistory}}</span>
                         <!-- End of Current Page -->
 
                         <!-- Start of Next Page -->
-                        <svg class="bg-gray-200 border-r rounded-r-full cursor-pointer" width="40"
+                        <svg @click="goToNextPageHistory" class="bg-gray-200 border-r rounded-r-full cursor-pointer" width="40"
                             height="30" viewBox="0 0 26 25" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
                                 d="M13.2024 18.473C13.0179 18.2825 12.9166 18.0265 12.9208 17.7614C12.9251 17.4963 13.0344 17.2437 13.2248 17.0591L17.5854 12.8348L13.361 8.47422C13.1818 8.28275 13.0851 8.02858 13.0915 7.76645C13.0979 7.50432 13.2071 7.25521 13.3954 7.07277C13.5837 6.89032 13.8362 6.78914 14.0984 6.79102C14.3606 6.7929 14.6115 6.89769 14.7972 7.08282L19.7173 12.1615C19.9018 12.352 20.003 12.6079 19.9988 12.873C19.9946 13.1382 19.8853 13.3908 19.6949 13.5753L14.6162 18.4954C14.4257 18.6799 14.1698 18.7811 13.9047 18.7769C13.6395 18.7727 13.3869 18.6634 13.2024 18.473ZM7.20314 18.3778C7.01867 18.1873 6.9174 17.9314 6.9216 17.6662C6.92581 17.4011 7.03514 17.1485 7.22557 16.964L11.5861 12.7396L7.36173 8.37906C7.18259 8.1876 7.08581 7.93343 7.09225 7.6713C7.09868 7.40917 7.20782 7.16006 7.39614 6.97761C7.58447 6.79517 7.83692 6.69399 8.09912 6.69587C8.36132 6.69775 8.61229 6.80254 8.79798 6.98766L13.7181 12.0663C13.9025 12.2568 14.0038 12.5128 13.9996 12.7779C13.9954 13.043 13.8861 13.2956 13.6956 13.4802L8.61696 18.4002C8.42649 18.5847 8.17054 18.686 7.90541 18.6818C7.64028 18.6776 7.38767 18.5682 7.20314 18.3778Z"

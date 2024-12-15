@@ -100,12 +100,12 @@ function insertStockOutExpense(expenseStockOutData, callback) {
 }
 
 function insertExpenseHistory(expenseHistoryData,callback){
-    const query =`INSERT INTO expenses_history ( id,item_id,stock_id) VALUES (?, ?,?)`;
+    const query =`INSERT INTO expenses_history ( id,item_id,stock_id,quantity_in,price, comments_in, date_stockIn, stockIn_flow) VALUES (?, ?,?,?,?, ?,?,?)`;
     connection.query(query,expenseHistoryData,callback);
 }
 
 function insertStockOutExpenseHistory(expenseStockOutHistoryData,callback){
-    const query =`INSERT INTO expenses_history ( id,item_id,stock_id) VALUES (?, ?,?)`;
+    const query =`INSERT INTO expenses_history ( id,item_id,stock_id,quantity_out, price, comments_out, stock_status, date_stockOut, stockOut_flow) VALUES (?, ?,?,?,?, ?,?,?,?)`;
     connection.query(query,expenseStockOutHistoryData,callback);
 }
 
