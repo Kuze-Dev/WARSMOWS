@@ -76,6 +76,7 @@ const addExpense = async () => {
                 Swal.fire('Success!', response.data.msg, 'success');
                 closeAddExpensesModal();
                 getAllExpenses();
+                fetchExpensesHistory();
 
             } else {
                 toast.error(response.data.errors[0].msg);
@@ -253,7 +254,7 @@ const openOptionExpenseModal = (id) => {
   } else {
     showOptionExpenseModal.value = true;
     selectedExpenseId.value = id;
-    alert(id);
+    // alert(id);
     document.addEventListener("mousedown", handleClickOutside);
   }
 }
@@ -313,7 +314,7 @@ const image_item = ref('');
 // const expense_image = ref('');
 // const expense_name = ref('');
 const openExpensesHistoryModal = (id) => {
-    alert(id);
+    // alert(id);
   selectedExpenseId.value = id; // Set the selected ID
   showExpensesHistoryModal.value = true;
 
@@ -773,7 +774,7 @@ onMounted(() => {
           <!-- Start of Expenses History Modal -->
           <section v-if="showExpensesHistoryModal" @click.self="closeExpensesHistoryModal"
             class="fixed before:fixed inset-0 p-4 before:inset-0 flex flex-wrap justify-center items-center top-0 h-full w-full before:w-full before:h-full left-0 before:bg-[rgba(0,0,0,0.5)] overflow-auto font-[sans-serif] z-10 ">
-            <div class="lg:w-[75%] xl:w-[75%]  w-full  border bg-white py-2 relative rounded-lg pb-4">
+            <div class="lg:w-[80%] xl:w-[80%]  w-full  border bg-white py-2 relative rounded-lg pb-4">
                 <div class="flex pb-3 border-b  mx-3 border-black">
                     <div class=" flex flex-1">
                         <svg class=" mt-2" width="30" height="17" viewBox="0 0 16 17" fill="none"
@@ -813,19 +814,17 @@ onMounted(() => {
                 <section class="mx-3">
                     <div class="w-full py-3">
                         <div class="font-[sans-serif] overflow-x-auto h-[611px]  border ">
-                            <table class=" w-full bg-[#4E95C9]">
-                                <thead class="whitespace-nowrap">
-                                    <tr>
+                            <table  class=" w-full bg-[#4E95C9]">
+                                <thead  class="whitespace-nowrap">
+                                    <tr v-if="expensesHistories.some(expense => !expense.item_id && expense.stock_id === selectedExpenseId)">
                                         <th class="px-5 py-4 text-left text-xs font-semibold  uppercase tracking-wider">
                                             #
                                         </th>
-                                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
-  <div class="flex justify-center items-center">
-  
-    <span>
-      QTY
-    </span>
-
+                                        <th class=" py-3 text-left text-xs font-semibold uppercase tracking-wider">
+  <div class="flex ">
+    
+    
+    EXPENSE AMOUNT
     <!-- SVG Icon -->
     <svg class="mx-2" width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M2.625 7.69157L6.125 4.5249M6.125 4.5249L9.625 7.69157M6.125 4.5249V15.6082M18.375 12.4416L14.875 15.6082M14.875 15.6082L11.375 12.4416M14.875 15.6082V4.5249" 
@@ -833,6 +832,65 @@ onMounted(() => {
     </svg>
   </div>
 </th>
+<th
+                                            class="px-4 py-3 text-left text-xs font-semibold  uppercase tracking-wider ">
+                                            <div class="flex ">
+                                                COMMENTS
+                                                <svg class="mx-2" width="21" height="20" viewBox="0 0 21 20" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M2.625 7.69157L6.125 4.5249M6.125 4.5249L9.625 7.69157M6.125 4.5249V15.6082M18.375 12.4416L14.875 15.6082M14.875 15.6082L11.375 12.4416M14.875 15.6082V4.5249"
+                                                        stroke="#555555" stroke-width="2" stroke-linecap="round"
+                                                        stroke-linejoin="round" />
+                                                </svg>
+                                            </div>
+                                        </th>
+                                        <th
+                                            class="px-14 py-3 text-left text-xs font-semibold  uppercase tracking-wider ">
+                                            <div class="flex">
+                                                DATE
+                                                <svg class="mx-2" width="21" height="20" viewBox="0 0 21 20" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M2.625 7.69157L6.125 4.5249M6.125 4.5249L9.625 7.69157M6.125 4.5249V15.6082M18.375 12.4416L14.875 15.6082M14.875 15.6082L11.375 12.4416M14.875 15.6082V4.5249"
+                                                        stroke="#555555" stroke-width="2" stroke-linecap="round"
+                                                        stroke-linejoin="round" />
+                                                </svg>
+                                            </div>
+                                        </th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-semibold  uppercase tracking-wider ">
+                                            <div class="flex ">
+                                                ACTION
+                                                <svg class="mx-2" width="21" height="20" viewBox="0 0 21 20" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M2.625 7.69157L6.125 4.5249M6.125 4.5249L9.625 7.69157M6.125 4.5249V15.6082M18.375 12.4416L14.875 15.6082M14.875 15.6082L11.375 12.4416M14.875 15.6082V4.5249"
+                                                        stroke="#555555" stroke-width="2" stroke-linecap="round"
+                                                        stroke-linejoin="round" />
+                                                </svg>
+                                            </div>
+                                        </th>
+</tr>
+
+
+                                    <tr v-else>
+                                        <th class="px-5 py-4 text-left text-xs font-semibold  uppercase tracking-wider">
+                                            #
+                                        </th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+  <div class="flex justify-center items-center">
+    
+    
+    QTY
+    <!-- SVG Icon -->
+    <svg class="mx-2" width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2.625 7.69157L6.125 4.5249M6.125 4.5249L9.625 7.69157M6.125 4.5249V15.6082M18.375 12.4416L14.875 15.6082M14.875 15.6082L11.375 12.4416M14.875 15.6082V4.5249" 
+            stroke="#555555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </div>
+</th>
+
 
 
 
@@ -915,16 +973,17 @@ onMounted(() => {
                                             </div>
                                         </th>
                                     </tr>
+                                  
                                 </thead>
                                 <tbody class="bg-white whitespace-nowrap">
                                     <tr 
   class="border-b border-gray-300"
-  v-for="(expensesHistory, index) in expensesHistories"
+  v-for="(expensesHistory, index) in expensesHistories.filter(expense => expense.stock_id === selectedExpenseId)"
   :key="expensesHistory.expenses_history_id"
   v-show="expensesHistory.stock_id===selectedExpenseId"
 >
       <td class="px-4 w-2 py-4 text-sm text-gray-800">
-        {{ (currentPageHistory - 1) * perPageHistory + index + 1 }}
+        {{index + 1}}
       </td>
       <td class="px-4 w-2 py-4 text-sm text-gray-800">
         <div v-if="!expensesHistory.item_id">
@@ -934,7 +993,7 @@ onMounted(() => {
       {{ expensesHistory.quantity_in || '' }} {{ expensesHistory.quantity_out || '' }}
     </div>
       </td>
-      <td class="px-4 w-2 py-4 text-sm text-gray-800">
+      <td v-if="expensesHistory.item_id" class="px-4 w-2 py-4 text-sm text-gray-800">
         {{
           parseFloat(expensesHistory.total_worth_stockin) === 0.0
             ? ''
@@ -947,22 +1006,32 @@ onMounted(() => {
         }}
       </td>
                                         <td class="px-4 w-2 py-4 text-sm text-gray-800">
+                                            <div v-if="!expensesHistory.item_id">
+      {{ expensesHistory.expense_comments }}
+    </div>
+    <div v-else>
                                             {{ expensesHistory.comments_in ? expensesHistory.comments_in : '' }}
                                             {{ expensesHistory.comments_out ? expensesHistory.comments_out : '' }}
+                                        </div>
                                         </td>
-                                        <td class="px-4 w-2 py-4 text- text-gray-800">
+                                        <td v-if="expensesHistory.item_id" class="px-4 w-2 py-4 text- text-gray-800">
                                             <div class="mx-5">
                                             {{ expensesHistory.stockIn_flow }}
                                             {{ expensesHistory.stockOut_flow }}
                                         </div>
                                         </td>
-                                        <td class="px-4 w-2 py-4 text-sm text-gray-800">
+                                        <td v-if="expensesHistory.item_id" class="px-4 w-2 py-4 text-sm text-gray-800">
                                             {{ expensesHistory.stock_status }}
                                         </td>
                                         <td class="px-4 w-2 py-4 text-sm text-gray-800">
+                                            <div v-if="!expensesHistory.item_id">
+      {{ formatDate(expensesHistory.expense_createdAt) }}
+    </div>
+                                            <div v-else>
                                             {{ expensesHistory.date_stockIn ? formatDate(expensesHistory.date_stockIn) : '' }}
                                             {{ expensesHistory.date_stockOut ? formatDate(expensesHistory.date_stockOut) : ''
                                             }}
+                                            </div>
                                         </td>
                                         <td class="px-4 w-2 py-4 text-sm text-gray-800">
                                             <div class="mx-4">

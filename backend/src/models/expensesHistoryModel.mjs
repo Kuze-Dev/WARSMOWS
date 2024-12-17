@@ -1,10 +1,13 @@
 import { connection } from "../config/db.mjs";
 
 function getExpensesHistoryModel(limit, offset, callback) {
-  // Paginated query to fetch data
+  // Paginated query with JOIN to fetch expense_name
   const query = `
-      SELECT * FROM expenses_history
-      ORDER BY expenses_history_id DESC
+      SELECT eh.*, e.expense_name 
+      FROM expenses_history AS eh
+      LEFT JOIN expenses AS e 
+      ON eh.id = e.id
+      ORDER BY eh.expenses_history_id DESC
       LIMIT ? OFFSET ?;
   `;
 
@@ -24,6 +27,7 @@ function getExpensesHistoryModel(limit, offset, callback) {
       });
   });
 }
+
 
 function deleteExpensesHistoryModel(data,callback){
   const query = `DELETE FROM expenses_history WHERE expenses_history_id=?`;
