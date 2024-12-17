@@ -6,7 +6,7 @@ function createExpenseModel(data, callback) {
 
     // Query to check if the item exists for the current year
     const checkQuery = `
-        SELECT * FROM expenses
+        SELECT id FROM expenses
         WHERE expense_name = ? AND YEAR(expense_createdAt) = YEAR(?)
     `;
 
@@ -20,9 +20,9 @@ function createExpenseModel(data, callback) {
             const updateQuery = `
                 UPDATE expenses
                 SET \`${getMonthColumn(currentMonth)}\` = \`${getMonthColumn(currentMonth)}\` + ?,
-                    expense_amount = expense_amount + ?
-                ${expense_image ? ', expense_image = ?' : ''} 
-                ${expense_comments ? ', expense_comments = ?' : ''}
+                    expense_amount = expense_amount + ? 
+                    ${expense_image ? ', expense_image = ?' : ''} 
+                    ${expense_comments ? ', expense_comments = ?' : ''}
                 WHERE id = ?
             `;
 
@@ -32,20 +32,41 @@ function createExpenseModel(data, callback) {
             queryParams.push(existingExpense.id);
 
             console.log("Executing Update Query:", updateQuery, queryParams);
-            connection.query(updateQuery, queryParams, callback);
+            connection.query(updateQuery, queryParams, (updateErr, updateResults) => {
+                if (updateErr) return callback(updateErr);
+
+                // Insert into expenses_history for the updated expense
+                const historyData = [existingExpense.id, expense_createdAt, expense_amount, expense_comments];
+                insertIntoExpensesHistory(historyData, (historyErr) => {
+                    if (historyErr) return callback(historyErr);
+                    callback(null, { id: existingExpense.id }, true); // Return the ID and indicate UPDATE
+                });
+            });
         } else {
             // If the item does not exist, insert a new row
             const insertQuery = `
-                INSERT INTO expenses (expense_name, jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, \`dec\`, expense_amount, expense_comments, expense_image, expense_createdAt)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO expenses (
+                    expense_name, jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, \`dec\`,
+                    expense_amount, expense_comments, expense_image, expense_createdAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             const monthColumns = Array(12).fill(0); // Initialize all months with 0
             monthColumns[currentMonth - 1] = expense_amount; // Set the current month value
+
             const insertData = [expense_name, ...monthColumns, expense_amount, expense_comments, expense_image, expense_createdAt];
 
             console.log("Executing Insert Query:", insertQuery, insertData);
-            connection.query(insertQuery, insertData, callback);
+            connection.query(insertQuery, insertData, (insertErr, insertResults) => {
+                if (insertErr) return callback(insertErr);
+
+                // Insert into expenses_history for the newly added expense
+                const historyData = [insertResults.insertId, expense_createdAt, expense_amount, expense_comments];
+                insertIntoExpensesHistory(historyData, (historyErr) => {
+                    if (historyErr) return callback(historyErr);
+                    callback(null, { id: insertResults.insertId }, false); // Return the ID and indicate INSERT
+                });
+            });
         }
     });
 }
@@ -60,9 +81,12 @@ function getMonthColumn(month) {
 }
 
 
-function insertIntoExpensesHistory(historyData,callback){
-     const query = `INSERT INTO expenses_history (id) VALUES(?)`;
-     connection.query(query,historyData,callback);
+function insertIntoExpensesHistory(historyData, callback) {
+    const insertQuery = `
+    INSERT INTO expenses_history (id, expense_createdAt, expense_amount, expense_comments)
+    VALUES (?, ?, ?, ?)
+`;
+    connection.query(insertQuery, historyData, callback);
 }
 
 

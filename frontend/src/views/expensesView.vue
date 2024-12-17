@@ -819,19 +819,23 @@ onMounted(() => {
                                         <th class="px-5 py-4 text-left text-xs font-semibold  uppercase tracking-wider">
                                             #
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-left text-xs font-semibold  uppercase tracking-wider ">
-                                            <div class="flex justify-center items-center">
-                                                QTY
-                                                <svg class="mx-2" width="21" height="20" viewBox="0 0 21 20" fill="none"
-                                                    xmlns="http://www.w3.org/2000/svg">
-                                                    <path
-                                                        d="M2.625 7.69157L6.125 4.5249M6.125 4.5249L9.625 7.69157M6.125 4.5249V15.6082M18.375 12.4416L14.875 15.6082M14.875 15.6082L11.375 12.4416M14.875 15.6082V4.5249"
-                                                        stroke="#555555" stroke-width="2" stroke-linecap="round"
-                                                        stroke-linejoin="round" />
-                                                </svg>
-                                            </div>
-                                        </th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+  <div class="flex justify-center items-center">
+  
+    <span>
+      QTY
+    </span>
+
+    <!-- SVG Icon -->
+    <svg class="mx-2" width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2.625 7.69157L6.125 4.5249M6.125 4.5249L9.625 7.69157M6.125 4.5249V15.6082M18.375 12.4416L14.875 15.6082M14.875 15.6082L11.375 12.4416M14.875 15.6082V4.5249" 
+            stroke="#555555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </div>
+</th>
+
+
+
                                         <th
                                             class="px-4 py-3 text-left text-xs font-semibold  uppercase tracking-wider ">
                                             <div class="flex justify-center items-center">
@@ -923,7 +927,12 @@ onMounted(() => {
         {{ (currentPageHistory - 1) * perPageHistory + index + 1 }}
       </td>
       <td class="px-4 w-2 py-4 text-sm text-gray-800">
-        {{ expensesHistory.quantity_in || '' }} {{ expensesHistory.quantity_out || '' }}
+        <div v-if="!expensesHistory.item_id">
+      {{ expensesHistory.expense_amount }}
+    </div>
+    <div v-else>
+      {{ expensesHistory.quantity_in || '' }} {{ expensesHistory.quantity_out || '' }}
+    </div>
       </td>
       <td class="px-4 w-2 py-4 text-sm text-gray-800">
         {{
@@ -975,6 +984,7 @@ onMounted(() => {
                                 </tbody>
 
                             </table>
+                            
                         </div>
                     </div>
                     <!-- Start of Pages -->
