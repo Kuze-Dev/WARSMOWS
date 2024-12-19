@@ -138,7 +138,7 @@ onMounted(()=>{
       <div class="border rounded-md h-[110px] flex justify-center items-center mx-1 mt-5"
         style="background: linear-gradient(0deg, #41B6FF 0%, #41B6FF 69%, #6597B6 100%);">
         <div>
-          <div  class="h-[60px] flex justify-center items-end text-xl">{{totalCustomers}}</div>
+          <div  class="h-[60px] flex justify-center items-end text-xl">{{totalCustomers||0}}</div>
           <div class="flex justify-center items-end text-xl h-[30px] mt-3">
             <img class="h-8 mr-2" src="../assets/customers.png" alt="">
             <span class="poppins-regular text-sm">CUSTOMERS</span>
@@ -150,7 +150,7 @@ onMounted(()=>{
       <div class="border rounded-md h-[110px] flex justify-center items-center mx-1 mt-5"
         style="background: linear-gradient(0deg, #41B6FF 0%, #41B6FF 69%, #6597B6 100%);">
         <div>
-          <div class="h-[60px] flex justify-center items-end text-xl">  {{ parseFloat(getOverAllExpenses).toFixed(2) }}</div>
+          <div class="h-[60px] flex justify-center items-end text-xl">  {{ parseFloat(getOverAllExpenses).toFixed(2)||0}}</div>
           <div class="flex justify-center items-end text-xl h-[30px] mt-3">
             <img class="h-8 mr-2" src="../assets/expense.png" alt="">
             <span class="poppins-regular text-sm">EXPENSE</span>

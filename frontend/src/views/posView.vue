@@ -401,8 +401,6 @@ const unpaid = ref(0); // Declare unpaidValue with ref()
 const orderStatus = ref(''); // Declare order status as a reactive variable
 
 const confirmPayment = async () => {
-    
-
     // Set payment status based on cash value
     paymentStatus.value = (cash.value === 0 || !cash.value) ? 'Credit' : 'Paid';
 
@@ -449,7 +447,36 @@ const confirmPayment = async () => {
             response.data.errors.forEach(err => toast.error(err.msg));
         } else if (response.status === 200) {
             toast.success("Payment confirmed successfully!");
-          
+
+            // Process stock out for items
+            for (const item of items.value) {
+                if (item.checked) {
+                    try {
+                        const stockOutPayload = {
+                            quantity_out: item.quantity, // Specify the quantity
+                            stock_status: 'Buy', // Example: default stock status
+                            comments_out: 'Buy From POS', // Example comment
+                            stockOut_flow: 'Out', // Example flow
+                        };
+
+                        const stockOutResponse = await axios.put(`/stockOut/${item.stock_id}`, stockOutPayload,{
+                            headers: {
+                Authorization: `Bearer ${store.token}`
+            }
+                        });
+
+                        if (stockOutResponse.data.success) {
+                            toast.success(stockOutResponse.data.message);
+                        } else {
+                            toast.error(stockOutResponse.data.message);
+                        }
+                    } catch (error) {
+                        console.error('Error stocking out item:', error);
+                        toast.error('Failed to stock out item. Please try again.');
+                    }
+                }
+            }
+
             fetchTransactionItem(); // Refresh the transaction list after successful payment
             closeConfirmPaymentModal(); // Close payment confirmation modal
         } else {
@@ -460,6 +487,40 @@ const confirmPayment = async () => {
         toast.error("An unexpected error occurred. Please try again.");
     }
 };
+
+// const handleStockOut = async (item) => {
+//     if (item.checked) {
+//         try {
+//             // Call the stockOutItem API
+//             const payload = {
+//                 quantity_out: item.quantity, // Specify the quantity
+//                 stock_status: 'Buy', // Example: default stock status
+//                 comments_out: 'Buy From POS', // Example comment
+//                 stockOut_flow: 'Out', // Example flow
+//             };
+
+//             const response = await axios.put(`/stockOut/${item.stock_id}`, payload);
+
+//             if (response.data.success) {
+//                 toast.success(response.data.message);
+//                 fetchTransactionItem(); // Update the frontend list if needed
+//                 closeConfirmPaymentModal();
+//             } else {
+//                 toast.error(response.data.message);
+//             }
+//         } catch (error) {
+//             console.error('Error stocking out item:', error);
+//             toast.error('Failed to stock out item. Please try again.');
+//         }
+//     }
+// };
+
+
+
+
+
+
+
 
 
 const transactions = ref([]);
