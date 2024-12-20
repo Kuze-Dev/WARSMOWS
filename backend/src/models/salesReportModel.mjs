@@ -1,9 +1,6 @@
 import { connection } from "../config/db.mjs";
 
-
-
-
-function getMonthlySalesReportModel(callback) {
+function getMonthlySalesReportModel(filterMonth, filterYear, callback) {
     const monthlyQuery = `
         SELECT 
             DATE_FORMAT(transaction.transaction_date, '%d') AS day, 
@@ -41,26 +38,29 @@ function getMonthlySalesReportModel(callback) {
                 END
             ) AS overallTotalDue
         FROM transaction
+        WHERE 
+            (MONTH(transaction.transaction_date) = ? OR ? IS NULL)
+            AND (YEAR(transaction.transaction_date) = ? OR ? IS NULL)
         GROUP BY YEAR(transaction.transaction_date), MONTH(transaction.transaction_date), DAY(transaction.transaction_date)
         ORDER BY YEAR(transaction.transaction_date), MONTH(transaction.transaction_date), DAY(transaction.transaction_date);
     `;
 
-    // Query for stock data to calculate overall expenses
     const stockQuery = `
         SELECT SUM(total_worth_stockIn) AS overallExpenses
         FROM stock
-        WHERE stock_status = 'Buy';
+        WHERE stock_status = 'Buy' AND
+            (MONTH(stock.date_stockIn) = ? OR ? IS NULL)
+            AND (YEAR(stock.date_stockIn) = ? OR ? IS NULL);
     `;
 
-    // First, run the monthly sales query
-    connection.query(monthlyQuery, (err, dailyResults) => {
+    // Run the monthly sales query
+    connection.query(monthlyQuery, [filterMonth, filterMonth, filterYear, filterYear], (err, dailyResults) => {
         if (err) return callback(err);
 
         // Run the stock expenses query
-        connection.query(stockQuery, (err, stockResults) => {
+        connection.query(stockQuery, [filterMonth, filterMonth, filterYear, filterYear], (err, stockResults) => {
             if (err) return callback(err);
 
-            // Calculate overall counts
             const overallCounts = {
                 countOverallDelivery: 0,
                 countOverallPickUp: 0,
@@ -68,41 +68,44 @@ function getMonthlySalesReportModel(callback) {
                 overallTotalDue: 0,
             };
 
-            // Process daily results and accumulate overall counts
-            const filteredResults = dailyResults
-                .map(item => {
-                    const countDelivery = parseInt(item.countOverallDelivery, 10) || 0;
-                    const countPickUp = parseInt(item.countOverallPickUp, 10) || 0;
+            const filteredResults = dailyResults.map(item => {
+                const countDelivery = parseInt(item.countOverallDelivery, 10) || 0;
+                const countPickUp = parseInt(item.countOverallPickUp, 10) || 0;
 
-                    // Accumulate totals
-                    overallCounts.countOverallDelivery += countDelivery;
-                    overallCounts.countOverallPickUp += countPickUp;
+                // Accumulate totals
+                overallCounts.countOverallDelivery += countDelivery;
+                overallCounts.countOverallPickUp += countPickUp;
+                overallCounts.overallTotalUnpaid += parseFloat(item.overallTotalUnpaid) || 0;
+                overallCounts.overallTotalDue += parseFloat(item.overallTotalDue) || 0;
 
-                    // Accumulate overall totals
-                    overallCounts.overallTotalUnpaid += parseFloat(item.overallTotalUnpaid) || 0;
-                    overallCounts.overallTotalDue += parseFloat(item.overallTotalDue) || 0;
+                return {
+                    day: parseInt(item.day, 10),
+                    month: item.month, 
+                    year: item.year,
+                    totalQuantity: parseFloat(item.totalQuantity) || 0,
+                    totalDue: parseFloat(item.totalDue) || 0,
+                    countOverallDelivery: countDelivery,
+                    countOverallPickUp: countPickUp,
+                    overallTotalUnpaid: parseFloat(item.overallTotalUnpaid) || 0,
+                    overallTotalDue: parseFloat(item.overallTotalDue) || 0,
+                };
+            });
 
-                    return {
-                        day: parseInt(item.day, 10),
-                        month: item.month,  // Full month name
-                        year: item.year,
-                        totalQuantity: parseFloat(item.totalQuantity) || 0,
-                        totalDue: parseFloat(item.totalDue) || 0,
-                    };
-                })
-                .filter(item => item.totalQuantity > 0 || item.totalDue > 0);
+            // Handle the expenses
+            let overallExpenses = stockResults[0]?.overallExpenses || 0;
 
-            // Get the overall expenses from stock query (ensure the field exists)
-            const overallExpenses = stockResults[0]?.overallExpenses || 0;
-
-            // Return the filtered results, overall counts, and expenses
             callback(null, {
-                dailyResults: filteredResults,
-                overallCounts,
-                overallExpenses,  // Include the overall expenses
+                success: true,
+                results: filteredResults,
+                countOverallDelivery: overallCounts.countOverallDelivery,
+                countOverallPickUp: overallCounts.countOverallPickUp,
+                overallTotalUnpaid: overallCounts.overallTotalUnpaid,
+                overallTotalDue: overallCounts.overallTotalDue,
+                overallExpenses: overallExpenses,  
             });
         });
     });
 }
+
 
 export { getMonthlySalesReportModel };

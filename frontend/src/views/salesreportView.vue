@@ -1,9 +1,10 @@
+
 <script setup>
 import headerComponent from '../components/headerComponent.vue';
 import footerComponent from '../components/footerComponent.vue';
 import { Chart, registerables } from 'chart.js';
 import axios from '../../axios';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch} from 'vue';
 
 Chart.register(...registerables);
 
@@ -25,9 +26,9 @@ const overallExpenses = ref(0);
 
 // For dynamically populated years and fixed months
 const availableYears = ref([]);
-const availableMonths = ref([
-  "January", "February", "March", "April", "May", "June", "July", "August",
-  "September", "October", "November", "December"
+const availableMonths = ref([ 
+  "January", "February", "March", "April", "May", "June", "July", "August", 
+  "September", "October", "November", "December" 
 ]); // Static months array
 const selectedYear = ref('');
 const selectedMonth = ref('');
@@ -35,7 +36,9 @@ const selectedMonth = ref('');
 // Fetch and process data based on selected month and year
 const fetchMonthlyData = async () => {
   try {
-    const { data } = await axios.get('/monthlySalesReport'); // API endpoint
+    const { data } = await axios.get('/monthlySalesReport', {
+      params: { filterYear: selectedYear.value,filterMonth: selectedMonth.value },
+    });
 
     // Store overall counts and expenses
     countOverallDelivery.value = data.countOverallDelivery;
@@ -147,15 +150,12 @@ const createChart = () => {
 };
 
 // Watch for changes to the selected month or year and re-fetch data
-watch([selectedMonth, selectedYear], () => {
-  fetchMonthlyData(); // Re-fetch the data when either the month or year changes
-});
+watch([selectedMonth, selectedYear], fetchMonthlyData, { immediate: true });
+
 
 // Fetch data on mount
 onMounted(fetchMonthlyData);
-
 </script>
-
 <template>
 <main class="lg:w-[1200px] xl:w-[1310px] w-full lg:h-screen   xl:h-screen h-[680px]  overflow-y-auto">
     <headerComponent/>
@@ -211,27 +211,24 @@ onMounted(fetchMonthlyData);
             </div>
             <div class="w-[40%]"></div>
             <div class="lg:w-[60%] xl:w-[60%] w-full flex">
-                   <!-- Month Selector -->
-        <div class="w-full mt-2 mr-2">
-          <label for="month">MONTH</label>
-          <select
-            class="border border-black py-1 w-full px-1 flex-shrink-0 rounded-md shadow-md"
-            v-model="selectedMonth"
-          >
-            <option v-for="month in availableMonths" :key="month" :value="month">{{ month }}</option>
-          </select>
-        </div>
-
-        <!-- Year Selector -->
-        <div class="w-full mt-2">
-          <label for="year">YEAR</label>
-          <select
-            class="border border-black py-1 px-1 w-full flex-shrink-0 rounded-md shadow-md"
-            v-model="selectedYear"
-          >
-            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
-          </select>
-        </div>
+                <div class="w-full mt-2 mr-2">
+              <label for="month">MONTH</label>
+              <select 
+                class="border border-black py-1 w-full px-1 flex-shrink-0 rounded-md shadow-md"
+                v-model="selectedMonth"
+              >
+                <option  v-for="month in availableMonths"  :key="month" :value="month">{{ month }}</option>
+              </select>
+            </div>
+            <div class="w-full mt-2">
+              <label for="year">YEAR</label>
+              <select
+                class="border border-black py-1 px-1 w-full flex-shrink-0 rounded-md shadow-md"
+                v-model="selectedYear"
+              >
+              <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+            </select>
+            </div>
             </div>
 
         </div>
