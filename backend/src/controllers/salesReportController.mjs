@@ -1,4 +1,4 @@
-import {getMonthlySalesReportModel} from '../models/salesReportModel.mjs'
+import {getMonthlySalesReportModel,getYearlySalesReportModel} from '../models/salesReportModel.mjs'
 
 function getMonthlySalesReport(req, res) {
     // Extract month and year from the query parameters (or request body if needed)
@@ -23,4 +23,25 @@ function getMonthlySalesReport(req, res) {
 
 
 
-export {getMonthlySalesReport};
+
+function getYearlySalesReport(req, res) {
+   
+
+    getYearlySalesReportModel((err, results) => {
+        if (err) {
+            console.error(err);
+            return res.json({ failed: 'failed', msg: 'Failed To Retrieve Yearly Sales Report' });
+        } else {
+            res.json(results);
+        }
+    });
+}
+
+
+
+
+
+
+
+
+export {getMonthlySalesReport,getYearlySalesReport};

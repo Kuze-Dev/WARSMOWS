@@ -111,4 +111,132 @@ function getMonthlySalesReportModel(filterMonth, filterYear, callback) {
 }
 
 
-export { getMonthlySalesReportModel };
+
+function getYearlySalesReportModel(callback) {
+    const currentYear = new Date().getFullYear(); // Get the current year dynamically
+
+    const monthlyQuery = `
+        SELECT 
+            UPPER(LEFT(MONTHNAME(transaction.transaction_date), 3)) AS month, 
+            YEAR(transaction.transaction_date) AS year,
+            SUM(
+                CASE 
+                    WHEN transaction.paymentStatus = 'Credit' AND transaction.unpaid > 0 THEN 0 
+                    ELSE transaction.totalQuantity 
+                END
+            ) AS totalQuantity,
+            SUM(
+                CASE 
+                    WHEN transaction.paymentStatus = 'Credit' AND transaction.unpaid > 0 THEN 0 
+                    ELSE transaction.totalDue 
+                END
+            ) AS totalDue,
+            SUM(
+                CASE 
+                    WHEN transaction.selectedService = 'Delivery' THEN 1 
+                    ELSE 0 
+                END
+            ) AS countOverallDelivery,
+            SUM(
+                CASE 
+                    WHEN transaction.selectedService = 'Pick Up' THEN 1 
+                    ELSE 0 
+                END
+            ) AS countOverallPickUp,
+            SUM(transaction.unpaid) AS overallTotalUnpaid, 
+            SUM(
+                CASE 
+                    WHEN transaction.paymentStatus = 'Paid' THEN transaction.totalDue 
+                    ELSE 0 
+                END
+            ) AS overallTotalDue
+        FROM transaction
+        WHERE YEAR(transaction.transaction_date) = ?
+        GROUP BY YEAR(transaction.transaction_date), MONTH(transaction.transaction_date)
+        ORDER BY MONTH(transaction.transaction_date);
+    `;
+
+    const stockQuery = `
+        SELECT SUM(total_worth_stockIn) AS overallExpenses
+        FROM stock
+        WHERE stock_status = 'Buy';
+    `;
+
+    const allMonths = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
+                       'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+    // Run the monthly sales query
+    connection.query(monthlyQuery, [currentYear], (err, monthlyResults) => {
+        if (err) return callback(err);
+
+        // Run the stock expenses query
+        connection.query(stockQuery, (err, stockResults) => {
+            if (err) return callback(err);
+
+            // Initialize the counts for the year
+            let overallCounts = {
+                countOverallDelivery: 0,
+                countOverallPickUp: 0,
+                overallTotalUnpaid: 0,
+                overallTotalDue: 0,
+            };
+
+            // Initialize an array for storing the results of each month
+            let monthlyReport = allMonths.map(month => ({
+                year: currentYear,
+                month: month,
+                totalQuantity: 0,
+                totalDue: 0,
+                countOverallDelivery: 0,
+                countOverallPickUp: 0,
+                overallTotalUnpaid: 0,
+                overallTotalDue: 0,
+            }));
+
+            // Map the query results to the respective month
+            monthlyResults.forEach(item => {
+                const monthIndex = allMonths.indexOf(item.month);
+                if (monthIndex !== -1) {
+                    const countDelivery = parseInt(item.countOverallDelivery, 10) || 0;
+                    const countPickUp = parseInt(item.countOverallPickUp, 10) || 0;
+
+                    // Assign year and accumulate totals for the month
+                    monthlyReport[monthIndex] = {
+                        year: currentYear,
+                        month: item.month,
+                        totalQuantity: parseFloat(item.totalQuantity) || 0,
+                        totalDue: parseFloat(item.totalDue) || 0,
+                        countOverallDelivery: countDelivery,
+                        countOverallPickUp: countPickUp,
+                        overallTotalUnpaid: parseFloat(item.overallTotalUnpaid) || 0,
+                        overallTotalDue: parseFloat(item.overallTotalDue) || 0,
+                    };
+
+                    // Accumulate overall counts for the year
+                    overallCounts.countOverallDelivery += countDelivery;
+                    overallCounts.countOverallPickUp += countPickUp;
+                    overallCounts.overallTotalUnpaid += parseFloat(item.overallTotalUnpaid) || 0;
+                    overallCounts.overallTotalDue += parseFloat(item.overallTotalDue) || 0;
+                }
+            });
+
+            // Handle the expenses for the given period
+            let overallExpenses = stockResults[0]?.overallExpenses || 0;
+
+            // Return the totals for the entire year
+            callback(null, {
+                success: true,
+                results: monthlyReport,
+                countOverallDelivery: overallCounts.countOverallDelivery,
+                countOverallPickUp: overallCounts.countOverallPickUp,
+                overallTotalUnpaid: overallCounts.overallTotalUnpaid,
+                overallTotalDue: overallCounts.overallTotalDue,
+                overallExpenses: overallExpenses,  
+            });
+        });
+    });
+}
+
+
+
+export { getMonthlySalesReportModel, getYearlySalesReportModel };

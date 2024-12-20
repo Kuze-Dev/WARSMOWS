@@ -1,11 +1,7 @@
-
 <script setup>
-import headerComponent from '../components/headerComponent.vue';
-import footerComponent from '../components/footerComponent.vue';
-import yearlySalesReportComponent from '../components/yearlySalesReportComponent.vue';
 import { Chart, registerables } from 'chart.js';
 import axios from '../../axios';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 
 Chart.register(...registerables);
 
@@ -13,10 +9,10 @@ const chartRef = ref(null); // Reference for the canvas
 let chartInstance = null;
 
 const chartData = ref({
-  labels: [], // Days of the month
-  totalDue: [], // Total Due per day
-  totalQuantity: [], // Total Quantity per day
-  formattedDates: [], // Formatted dates for tooltip (Month Day, Year)
+  labels: [], // These will now be months
+  totalDue: [],
+  totalQuantity: [],
+  formattedDates: [], // This will store formatted month names
 });
 
 const countOverallDelivery = ref(0);
@@ -25,36 +21,20 @@ const overallTotalDue = ref(0);
 const overallTotalUnpaid = ref(0);
 const overallExpenses = ref(0);
 
-// For dynamically populated years and fixed months
 const availableYears = ref([]);
-const availableMonths = ref([ 
-  "January", "February", "March", "April", "May", "June", "July", "August", 
-  "September", "October", "November", "December" 
-]); // Static months array
+
 const selectedYear = ref('');
 const selectedMonth = ref('');
 
-// Fetch and process data based on selected month and year
-const fetchMonthlyData = async () => {
+// Fetch and process data based on selected year
+const fetchYearlyData = async () => {
   try {
-    const { data } = await axios.get('/monthlySalesReport', {
-      params: { filterYear: selectedYear.value, filterMonth: selectedMonth.value },
+    const { data } = await axios.get('/yearlySalesReport', {
+      params: { filterYear: selectedYear.value },
     });
 
-    // If no data or no matching results, set all totals to zero
     if (!data.success || !data.results || data.results.length === 0) {
-      countOverallDelivery.value = 0;
-      countOverallPickUp.value = 0;
-      overallTotalDue.value = 0;
-      overallTotalUnpaid.value = 0;
-      overallExpenses.value = 0;
-      chartData.value = {
-        labels: [],
-        totalDue: [],
-        totalQuantity: [],
-        formattedDates: [],
-      };
-      createChart(); // Update chart with empty data
+      resetData();
       return;
     }
 
@@ -65,53 +45,44 @@ const fetchMonthlyData = async () => {
     });
     availableYears.value = Array.from(years);
 
-    // Set default selected values if not already set
+    // Set default selected year if not already set
     selectedYear.value = selectedYear.value || data.results[0]?.year || '';
-    selectedMonth.value = selectedMonth.value || data.results[0]?.month || '';
-
-    // Filter the results based on selected year and month before processing
-    const filteredResults = data.results.filter(item =>
-      item.month === selectedMonth.value && item.year === parseInt(selectedYear.value)
-    );
-
-    // If there are no results after filtering, reset values
-    if (filteredResults.length === 0) {
-      countOverallDelivery.value = 0;
-      countOverallPickUp.value = 0;
-      overallTotalDue.value = 0;
-      overallTotalUnpaid.value = 0;
-      overallExpenses.value = 0;
-      chartData.value = {
-        labels: [],
-        totalDue: [],
-        totalQuantity: [],
-        formattedDates: [],
-      };
-      createChart(); // Update chart with empty data
-      return;
-    }
 
     // Store overall counts and expenses after filtering
     countOverallDelivery.value = data.countOverallDelivery;
     countOverallPickUp.value = data.countOverallPickUp;
     overallTotalDue.value = data.overallTotalDue;
     overallTotalUnpaid.value = data.overallTotalUnpaid;
-    overallExpenses.value = parseInt(data.overallExpenses); // Expenses are a string, convert to number
+    overallExpenses.value = parseInt(data.overallExpenses);
 
-    // Process filtered daily results for chart data
+    // Process monthly results for chart data
     chartData.value = {
-      labels: filteredResults.map(day => day.day), // Day numbers
-      totalDue: filteredResults.map(day => day.totalDue), // Total due values
-      totalQuantity: filteredResults.map(day => day.totalQuantity), // Total quantity values
-      formattedDates: filteredResults.map(
-        day => `${day.month} ${day.day}, ${day.year}` // e.g., Dec 20, 2024
-      ),
+      labels: data.results.map(item => item.month), // Use month names as labels
+      totalDue: data.results.map(item => item.totalDue),
+      totalQuantity: data.results.map(item => item.totalQuantity),
+      formattedDates: data.results.map(item => `${item.month}, ${item.year}`),
     };
 
     createChart(); // Render the chart with filtered data
   } catch (error) {
     console.error('Error fetching chart data:', error);
   }
+};
+
+// Reset data
+const resetData = () => {
+  countOverallDelivery.value = 0;
+  countOverallPickUp.value = 0;
+  overallTotalDue.value = 0;
+  overallTotalUnpaid.value = 0;
+  overallExpenses.value = 0;
+  chartData.value = {
+    labels: [],
+    totalDue: [],
+    totalQuantity: [],
+    formattedDates: [],
+  };
+  createChart();
 };
 
 // Create or update the chart
@@ -123,7 +94,7 @@ const createChart = () => {
     chartInstance = new Chart(chartRef.value, {
       type: 'line', // Line chart
       data: {
-        labels: chartData.value.labels, // X-axis labels (Days of the month)
+        labels: chartData.value.labels, // X-axis labels (Months)
         datasets: [
           {
             label: 'Total Due (₱)',
@@ -148,7 +119,7 @@ const createChart = () => {
           tooltip: {
             enabled: true, // Show tooltips on hover
             callbacks: {
-              title: context => chartData.value.formattedDates[context[0].dataIndex], // Show Month Day, Year
+              title: context => chartData.value.formattedDates[context[0].dataIndex], // Show Month, Year
               label: context =>
                 `Quantity: ${chartData.value.totalQuantity[context.dataIndex]} | Total: ₱${context.raw.toLocaleString()}`,
             },
@@ -182,32 +153,31 @@ const createChart = () => {
   }
 };
 
-// Watch for changes to the selected month or year and re-fetch data
-watch([selectedMonth, selectedYear], fetchMonthlyData, { immediate: true });
-
 // Fetch data on mount
-onMounted(fetchMonthlyData);
+onMounted(fetchYearlyData);
 </script>
 
+
+
+
 <template>
-<main class="lg:w-[1200px] xl:w-[1310px] w-full lg:h-screen   xl:h-screen h-[680px]  overflow-y-auto">
-    <headerComponent/>
-            <!-- start of monthly sales report header -->
-            <div class="mt-10 ml-10 flex">
-                <img class="w-[27px] h-5 mt-1  mr-3" src="../assets/monthlysales.png" alt="">
-                <h1 class="font-normal leading-normal text-lg">MONTHLY SALES REPORT</h1>
-            </div>
+     <!-- start of yearly sales report header -->
+     <div class="mt-10 ml-10 flex">
+        <img class="w-[27px] h-5 mt-1  mr-3" src="../assets/monthlysales.png" alt="">
+        <h1 class="font-normal leading-normal text-lg">YEARLY SALES REPORT</h1>
+    </div>
+
             <div>
                 <div class="mt-5 mx-3 mb-5">
                     <div class="border-b  w-full"></div>
                 </div>
              </div>
-             <!-- end of monthly sales report -->
-
-    <div class="flex justify-center">
-      <section class="lg:w-[95%] xl:w-[95%] w-[90%]  border mt-2 h-[80%] rounded-md shadow-md">
-        <div class="lg:flex xl:flex mt-3 mx-3 justify-center mb-2">
-            <div class=" flex w-full py-1">
+             <!-- end of yearly sales report header -->
+              
+            <div class="flex justify-center">
+            <section class="lg:w-[95%] xl:w-[95%] w-[90%]   border mt-2 h-[80%] rounded-md shadow-md">
+                <div class="lg:flex xl:flex mt-3 mx-3 justify-center mb-2">
+            <div class=" flex w-[80%] py-1">
                 <div class="mt-2  mr-2 w-full">
                     <label class="flex justify-center" >DELIVER</label>
                     <div class="flex justify-center">
@@ -243,16 +213,8 @@ onMounted(fetchMonthlyData);
            
             </div>
             <div class="w-[40%]"></div>
-            <div class="lg:w-[60%] xl:w-[60%] w-full flex">
-                <div class="w-full mt-2 mr-2">
-              <label for="month">MONTH</label>
-              <select 
-                class="border border-black py-1 w-full px-1 flex-shrink-0 rounded-md shadow-md"
-                v-model="selectedMonth"
-              >
-                <option  v-for="month in availableMonths"  :key="month" :value="month">{{ month }}</option>
-              </select>
-            </div>
+            <div class="lg:w-[30%] xl:w-[60%] w-full flex">
+                
             <div class="w-full mt-2">
               <label for="year">YEAR</label>
               <select
@@ -264,16 +226,18 @@ onMounted(fetchMonthlyData);
             </div>
             </div>
 
-        </div>
-        <div class="flex justify-center">
-        <div class="lg:w-[97%] xl:w-[95%] w-[96%] h-[550px] lg:h-[550px]  xl:h-[550px] py-2">
-                <canvas ref="chartRef"></canvas>
             </div>
-        </div>
-      </section>  
-    </div>
-    
-    <div class="flex justify-center">
+            
+                <div class="flex justify-center">
+                <div class="lg:w-[97%] xl:w-[95%] w-[96%] h-[550px] lg:h-[550px]  xl:h-[550px] py-2">
+                <canvas ref="chartRef"></canvas>
+                </div>
+            </div>
+            </section>  
+            </div>
+
+            <div class="flex justify-center">
+                
       <section class="lg:w-[95%] xl:w-[95%] w-[90%] border mt-2 h-screen rounded-md shadow-md">
          <!--Start of Table -->
          <section class="mt-2">
@@ -402,9 +366,4 @@ onMounted(fetchMonthlyData);
                 </section>
       </section>  
     </div>
-           <yearlySalesReportComponent/>
-    
-    <footerComponent class="mt-3" />
-
-</main>
 </template>
