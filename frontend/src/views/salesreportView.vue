@@ -4,7 +4,7 @@ import headerComponent from '../components/headerComponent.vue';
 import footerComponent from '../components/footerComponent.vue';
 import { Chart, registerables } from 'chart.js';
 import axios from '../../axios';
-import { ref, onMounted, watch} from 'vue';
+import { ref, onMounted, watch } from 'vue';
 
 Chart.register(...registerables);
 
@@ -37,45 +37,77 @@ const selectedMonth = ref('');
 const fetchMonthlyData = async () => {
   try {
     const { data } = await axios.get('/monthlySalesReport', {
-      params: { filterYear: selectedYear.value,filterMonth: selectedMonth.value },
+      params: { filterYear: selectedYear.value, filterMonth: selectedMonth.value },
     });
 
-    // Store overall counts and expenses
+    // If no data or no matching results, set all totals to zero
+    if (!data.success || !data.results || data.results.length === 0) {
+      countOverallDelivery.value = 0;
+      countOverallPickUp.value = 0;
+      overallTotalDue.value = 0;
+      overallTotalUnpaid.value = 0;
+      overallExpenses.value = 0;
+      chartData.value = {
+        labels: [],
+        totalDue: [],
+        totalQuantity: [],
+        formattedDates: [],
+      };
+      createChart(); // Update chart with empty data
+      return;
+    }
+
+    // Dynamically populate years from data.results
+    const years = new Set();
+    data.results.forEach((item) => {
+      years.add(item.year);
+    });
+    availableYears.value = Array.from(years);
+
+    // Set default selected values if not already set
+    selectedYear.value = selectedYear.value || data.results[0]?.year || '';
+    selectedMonth.value = selectedMonth.value || data.results[0]?.month || '';
+
+    // Filter the results based on selected year and month before processing
+    const filteredResults = data.results.filter(item =>
+      item.month === selectedMonth.value && item.year === parseInt(selectedYear.value)
+    );
+
+    // If there are no results after filtering, reset values
+    if (filteredResults.length === 0) {
+      countOverallDelivery.value = 0;
+      countOverallPickUp.value = 0;
+      overallTotalDue.value = 0;
+      overallTotalUnpaid.value = 0;
+      overallExpenses.value = 0;
+      chartData.value = {
+        labels: [],
+        totalDue: [],
+        totalQuantity: [],
+        formattedDates: [],
+      };
+      createChart(); // Update chart with empty data
+      return;
+    }
+
+    // Store overall counts and expenses after filtering
     countOverallDelivery.value = data.countOverallDelivery;
     countOverallPickUp.value = data.countOverallPickUp;
     overallTotalDue.value = data.overallTotalDue;
     overallTotalUnpaid.value = data.overallTotalUnpaid;
-    overallExpenses.value = data.overallExpenses;
+    overallExpenses.value = parseInt(data.overallExpenses); // Expenses are a string, convert to number
 
-    if (data.success) {
-      // Dynamically populate years from data.results
-      const years = new Set();
-      data.results.forEach((item) => {
-        years.add(item.year);
-      });
-      availableYears.value = Array.from(years);
+    // Process filtered daily results for chart data
+    chartData.value = {
+      labels: filteredResults.map(day => day.day), // Day numbers
+      totalDue: filteredResults.map(day => day.totalDue), // Total due values
+      totalQuantity: filteredResults.map(day => day.totalQuantity), // Total quantity values
+      formattedDates: filteredResults.map(
+        day => `${day.month} ${day.day}, ${day.year}` // e.g., Dec 20, 2024
+      ),
+    };
 
-      // Set default selected values if not already set
-      selectedYear.value = selectedYear.value || data.results[0]?.year || '';
-      selectedMonth.value = selectedMonth.value || data.results[0]?.month || '';
-
-      // Filter the results based on selected year and month
-      const filteredResults = data.results.filter(item =>
-        item.month === selectedMonth.value && item.year === parseInt(selectedYear.value)
-      );
-
-      // Process filtered daily results for chart data
-      chartData.value = {
-        labels: filteredResults.map(day => day.day), // Day numbers
-        totalDue: filteredResults.map(day => day.totalDue), // Total due values
-        totalQuantity: filteredResults.map(day => day.totalQuantity), // Total quantity values
-        formattedDates: filteredResults.map(
-          day => `${day.month} ${day.day}, ${day.year}` // e.g., Dec 20, 2024
-        ),
-      };
-
-      createChart(); // Render the chart
-    }
+    createChart(); // Render the chart with filtered data
   } catch (error) {
     console.error('Error fetching chart data:', error);
   }
@@ -152,10 +184,10 @@ const createChart = () => {
 // Watch for changes to the selected month or year and re-fetch data
 watch([selectedMonth, selectedYear], fetchMonthlyData, { immediate: true });
 
-
 // Fetch data on mount
 onMounted(fetchMonthlyData);
 </script>
+
 <template>
 <main class="lg:w-[1200px] xl:w-[1310px] w-full lg:h-screen   xl:h-screen h-[680px]  overflow-y-auto">
     <headerComponent/>

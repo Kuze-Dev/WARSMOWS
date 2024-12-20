@@ -1,5 +1,6 @@
 import { connection } from "../config/db.mjs";
 
+
 function getMonthlySalesReportModel(filterMonth, filterYear, callback) {
     const monthlyQuery = `
         SELECT 
@@ -61,7 +62,8 @@ function getMonthlySalesReportModel(filterMonth, filterYear, callback) {
         connection.query(stockQuery, [filterMonth, filterMonth, filterYear, filterYear], (err, stockResults) => {
             if (err) return callback(err);
 
-            const overallCounts = {
+            // Initialize the counts for the current month
+            let overallCounts = {
                 countOverallDelivery: 0,
                 countOverallPickUp: 0,
                 overallTotalUnpaid: 0,
@@ -72,7 +74,7 @@ function getMonthlySalesReportModel(filterMonth, filterYear, callback) {
                 const countDelivery = parseInt(item.countOverallDelivery, 10) || 0;
                 const countPickUp = parseInt(item.countOverallPickUp, 10) || 0;
 
-                // Accumulate totals
+                // Accumulate totals for the given month only
                 overallCounts.countOverallDelivery += countDelivery;
                 overallCounts.countOverallPickUp += countPickUp;
                 overallCounts.overallTotalUnpaid += parseFloat(item.overallTotalUnpaid) || 0;
@@ -91,9 +93,10 @@ function getMonthlySalesReportModel(filterMonth, filterYear, callback) {
                 };
             });
 
-            // Handle the expenses
+            // Handle the expenses for the given month
             let overallExpenses = stockResults[0]?.overallExpenses || 0;
 
+            // Return only the totals for the selected month
             callback(null, {
                 success: true,
                 results: filteredResults,
