@@ -238,8 +238,7 @@ onMounted(fetchYearlyData);
 
             <div class="flex justify-center">
                 
-      <section class="lg:w-[95%] xl:w-[95%] w-[90%] border mt-2 h-screen rounded-md shadow-md">
-         <!--Start of Table -->
+      <!-- <section class="lg:w-[95%] xl:w-[95%] w-[90%] border mt-2 h-screen rounded-md shadow-md">
          <section class="mt-2">
                     <div class="w-full  h-[270px]">
                         <div class="font-[sans-serif] overflow-x-auto border pb-[85px]">
@@ -364,6 +363,6 @@ onMounted(fetchYearlyData);
                         </div>
                     </div>
                 </section>
-      </section>  
+      </section>   -->
     </div>
 </template>

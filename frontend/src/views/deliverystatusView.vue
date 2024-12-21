@@ -330,7 +330,7 @@ onMounted(() => {
                         </div>
                     </div>
                     <div class="mt-2 ml-7">
-                        <RouterLink   v-if="role === 'Admin'"   to="/successfuldelivery" class="flex">
+                        <RouterLink  to="/successfuldelivery" class="flex">
                             <img class="w-[25px] h-7 mt-2  mr-2" src="../assets/succesfuldelivery.png" alt="">
                             <span class="mt-3 ">SUCCESSFUL DELIVERY</span>
                         </RouterLink>
@@ -672,6 +672,7 @@ onMounted(() => {
   class="fixed z-50"
 >
   <div
+   
     v-for="(delivery, index) in deliveries"
     :key="delivery.delivery_id"
     v-show="delivery.delivery_id === selectedDeliveryId"

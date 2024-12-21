@@ -278,6 +278,11 @@ onMounted(fetchAllDailySales);
 
                                         </td>
                                     </tr>
+                                    <tr v-else>
+                                        <td colspan="9" class="py-4 text-center text-gray-500 text-xl font-semibold">
+                                            No daily sales available.
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>

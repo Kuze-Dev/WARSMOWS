@@ -71,7 +71,7 @@ const closeNotifModal = () => {
             <img class="h-9 mt-3 mx-1" src="../assets/warsmows.png" alt="">
           </div>
           <div class="flex justify-end ml-auto mr-5">
-            <img @click="openNotifModal" class="w-[25px] h-[25px] mt-4 mx-2" src="../assets/notification.png" alt="">
+            <!-- <img @click="openNotifModal" class="w-[25px] h-[25px] mt-4 mx-2" src="../assets/notification.png" alt=""> -->
             <button @click="logout"
               class="border shadow-md w-[100px] h-[35px] mt-3 bg-[#3e60d8] hover:bg-[#3e64ed] text-white rounded-full lg:block xl:block hidden">SIGN
               OUT</button>

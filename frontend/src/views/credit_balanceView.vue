@@ -645,7 +645,7 @@ onMounted(fetchAllCreditBalance);
 
                                             <!-- Note Modal -->
                                             <form @submit.prevent="submitNote" v-if="isNoteModalOpen" @click.self="closeModal"
-                                                class="fixed before:fixed inset-0  p-4 before:inset-0 w-full h-full flex flex-wrap  justify-center items-center top-0 left-0 before:w-full before:h-full before:bg-[rgba(0,0,0,0.5)] overflow-auto  font-[sans-serif] z-20 ">
+                                                class="fixed before:fixed inset-0  p-4 before:inset-0 w-full h-full flex flex-wrap  justify-center items-center top-0 left-0 before:w-full before:h-full before:bg-[rgba(0,0,0,0.2)] overflow-auto  font-[sans-serif] z-20 ">
                                                 <div
                                                     class="bg-white lg:w-[40%] xl:w-[40%]  w-full relative border py-2  rounded-lg">
                                                     <div class="flex pb-3 border-b  border-gray-500">

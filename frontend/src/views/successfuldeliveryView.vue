@@ -146,7 +146,6 @@ onMounted(fetchAllSuccessDelivery);
                     </div>
                     <div class="mt-2 ml-7">
     <RouterLink 
-        v-if="role === 'Admin'" 
         to="/successfuldelivery" 
         class="flex"
     >
